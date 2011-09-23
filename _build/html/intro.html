@@ -7,7 +7,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Qué es PyNabaztag &mdash; PyNabaztag v2.7 documentation</title>
+    <title>Introducción: Qué es PyNabaztag &mdash; PyNabaztag v2.7 documentation</title>
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
@@ -22,19 +22,24 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/translations.js"></script>
     <link rel="top" title="PyNabaztag v2.7 documentation" href="index.html" />
+    <link rel="next" title="Tutorial: Creación de un plugin" href="tutorial.html" />
     <link rel="prev" title="Welcome to PyNabaztag’s documentation!" href="index.html" /> 
   </head>
   <body>
     <div class="related">
-      <h3>Navigation</h3>
+      <h3>Navegación</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
-          <a href="genindex.html" title="General Index"
-             accesskey="I">index</a></li>
+          <a href="genindex.html" title="Índice General"
+             accesskey="I">índice</a></li>
+        <li class="right" >
+          <a href="tutorial.html" title="Tutorial: Creación de un plugin"
+             accesskey="N">siguiente</a> |</li>
         <li class="right" >
           <a href="index.html" title="Welcome to PyNabaztag’s documentation!"
-             accesskey="P">previous</a> |</li>
+             accesskey="P">anterior</a> |</li>
         <li><a href="index.html">PyNabaztag v2.7 documentation</a> &raquo;</li> 
       </ul>
     </div>  
@@ -44,15 +49,42 @@
         <div class="bodywrapper">
           <div class="body">
             
-  <div class="section" id="que-es-pynabaztag">
-<h1>Qué es PyNabaztag<a class="headerlink" href="#que-es-pynabaztag" title="Permalink to this headline">¶</a></h1>
-<p>PyNabaztag es un servidor completo en Python para Nabaztag, que incluye las 2 partes indispensables de un servidor Nabaztag: el servidor HTTP y el servidor XMPP. Ambas partes, tienen su uso determinado para el funcionamiento de Nabaztag.</p>
+  <div class="section" id="introduccion-que-es-pynabaztag">
+<h1>Introducción: Qué es PyNabaztag<a class="headerlink" href="#introduccion-que-es-pynabaztag" title="Enlazar permanentemente con este título">¶</a></h1>
+<p>PyNabaztag es un servidor completo en Python para Nabaztag, que incluye las 2 partes indispensables de un servidor Nabaztag: el servidor HTTP y el servidor XMPP. Ambas partes, tienen su uso determinado para el funcionamiento del conejo.</p>
 <dl class="docutils">
-<dt>HTTP</dt>
-<dd>Encargado</dd>
-<dt>XMPP</dt>
-<dd>Encargado de...</dd>
+<dt><strong>HTTP</strong></dt>
+<dd>Nabaztag realiza una primera petición a través de HTTP (puerto 80) para solicitar un binario que ejecutará (el sistema) y las direcciones de conexión. Después, cuando ya esté correctamente identificado a través de XMPP, solicitará al servidor archivos de audio y realizará determinadas peticiones por HTTP. A parte, la página de configuración y administración se sirve a través de HTTP, aunque esto no se encuentra estrictamente relacionado con el funcionamiento del Nabaztag.</dd>
+<dt><strong>XMPP</strong></dt>
+<dd>Tras obtener las direcciones de conexión por HTTP (entre las que se encuentra la dirección del servidor XMPP), Nabaztag se identificará con el servidor XMPP (puerto 5222). XMPP es el acrónimo de &#8220;eXtensible Messaging and Presence Protocol&#8221;, el cual se usa como protocolo de Mensajería Instantánea para las comunicaciones entre servidor y cliente. Nabaztag usará XMPP para comunicarse con el servidor, y viceversa (bidireccional). Por ejemplo, Nabaztag usará XMPP para comunicar de los eventos de pulsación de botón o de movimiento de orejas. En cambio, usará HTTP para peticiones como el envío del archivo de audio de cuando se habla con Nabaztag. El servidor SIEMPRE se comunicará con Nabaztag mediante XMPP, ya que HTTP no soporta PUSH (es decir, no es bidireccional). Aún así, el servidor cuando tiene que ofrecerle un archivo binario o muy grande a Nabaztag, le ofrecerá una URL para descargar o hacer streaming. Ejemplo: El servidor quiere que Nabaztag haga sonar una canción. En tal caso, el servidor enviará por XMPP una URL HTTP con la orden &#8220;Reproduce este sonido&#8221;.</dd>
 </dl>
+<div class="section" id="organizacion-de-pynabaztag">
+<h2>Organización de PyNabaztag<a class="headerlink" href="#organizacion-de-pynabaztag" title="Enlazar permanentemente con este título">¶</a></h2>
+<p>La siguiente es la organización de los directorios y archivos en PyNabaztag</p>
+<dl class="docutils">
+<dt><strong>share/</strong></dt>
+<dd>Archivos que se entregarán a Nabaztag a través de HTTP.</dd>
+<dt><strong>pynabaztag/</strong></dt>
+<dd><p class="first">Código fuente del servidor.</p>
+<dl class="last docutils">
+<dt><strong>pynabaztag/blocks/</strong></dt>
+<dd>Funciones Packet y Blocks para comunicación S-&gt;C.</dd>
+<dt><strong>pynabaztag/xmppmod/</strong></dt>
+<dd>Servidor XMPP.</dd>
+<dt><strong>pynabaztag/httpmod/</strong></dt>
+<dd>Servidor HTTP.</dd>
+<dt><strong>pynabaztag/plugins/</strong></dt>
+<dd>Plugins que expandirán las capacidades HTTP y XMPP de PyNabaztag.</dd>
+<dt><strong>pynabaztag/tts/</strong></dt>
+<dd>Módulo de sintetización de voz.</dd>
+</dl>
+</dd>
+<dt><strong>server.py</strong></dt>
+<dd>Main. Ejecutable que pondrá en funcionamiento el servidor.</dd>
+<dt><strong>urls.py</strong></dt>
+<dd>Rutas que se servirán por defecto a través de HTTP. Permite relacionar un path de URL con una función del sevidor, o que un path se relacione con un directorio para servir archivos estáticos.</dd>
+</dl>
+</div>
 </div>
 
 
@@ -61,19 +93,30 @@
       </div>
       <div class="sphinxsidebar">
         <div class="sphinxsidebarwrapper">
-  <h4>Previous topic</h4>
+  <h3><a href="index.html">Contenidos</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Introducción: Qué es PyNabaztag</a><ul>
+<li><a class="reference internal" href="#organizacion-de-pynabaztag">Organización de PyNabaztag</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Tema anterior</h4>
   <p class="topless"><a href="index.html"
-                        title="previous chapter">Welcome to PyNabaztag&#8217;s documentation!</a></p>
-  <h3>This Page</h3>
+                        title="Capítulo anterior">Welcome to PyNabaztag&#8217;s documentation!</a></p>
+  <h4>Próximo tema</h4>
+  <p class="topless"><a href="tutorial.html"
+                        title="Próximo capítulo">Tutorial: Creación de un plugin</a></p>
+  <h3>Esta página</h3>
   <ul class="this-page-menu">
     <li><a href="_sources/intro.txt"
-           rel="nofollow">Show Source</a></li>
+           rel="nofollow">Enseñar el código</a></li>
   </ul>
 <div id="searchbox" style="display: none">
-  <h3>Quick search</h3>
+  <h3>Búsqueda rápida</h3>
     <form class="search" action="search.html" method="get">
       <input type="text" name="q" size="18" />
-      <input type="submit" value="Go" />
+      <input type="submit" value="Ir a" />
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
     </form>
@@ -87,20 +130,23 @@
       <div class="clearer"></div>
     </div>
     <div class="related">
-      <h3>Navigation</h3>
+      <h3>Navegación</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
-          <a href="genindex.html" title="General Index"
-             >index</a></li>
+          <a href="genindex.html" title="Índice General"
+             >índice</a></li>
+        <li class="right" >
+          <a href="tutorial.html" title="Tutorial: Creación de un plugin"
+             >siguiente</a> |</li>
         <li class="right" >
           <a href="index.html" title="Welcome to PyNabaztag’s documentation!"
-             >previous</a> |</li>
+             >anterior</a> |</li>
         <li><a href="index.html">PyNabaztag v2.7 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
         &copy; Copyright 2011, Nekmo.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.7.
+      Creado con <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.7.
     </div>
   </body>
 </html>

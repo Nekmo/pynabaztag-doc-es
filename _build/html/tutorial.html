@@ -7,7 +7,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>&lt;no title&gt; &mdash; PyNabaztag v2.7 documentation</title>
+    <title>Tutorial: Creación de un plugin &mdash; PyNabaztag v2.7 documentation</title>
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
@@ -22,15 +22,20 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="PyNabaztag v2.7 documentation" href="index.html" /> 
+    <script type="text/javascript" src="_static/translations.js"></script>
+    <link rel="top" title="PyNabaztag v2.7 documentation" href="index.html" />
+    <link rel="prev" title="Introducción: Qué es PyNabaztag" href="intro.html" /> 
   </head>
   <body>
     <div class="related">
-      <h3>Navigation</h3>
+      <h3>Navegación</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
-          <a href="genindex.html" title="General Index"
-             accesskey="I">index</a></li>
+          <a href="genindex.html" title="Índice General"
+             accesskey="I">índice</a></li>
+        <li class="right" >
+          <a href="intro.html" title="Introducción: Qué es PyNabaztag"
+             accesskey="P">anterior</a> |</li>
         <li><a href="index.html">PyNabaztag v2.7 documentation</a> &raquo;</li> 
       </ul>
     </div>  
@@ -40,23 +45,96 @@
         <div class="bodywrapper">
           <div class="body">
             
-  
+  <div class="section" id="tutorial-creacion-de-un-plugin">
+<h1>Tutorial: Creación de un plugin<a class="headerlink" href="#tutorial-creacion-de-un-plugin" title="Enlazar permanentemente con este título">¶</a></h1>
+<p>Uno de los objetivos de PyNabaztag, es la modularidad. Toda capacidad añadida al servidor, debería de ser fácilmente activable y desactivable sin que ello requiera modificación alguna de código. Ello permite mayor personalización y encontrar más fácilmente errores.</p>
+<p>En el siguiente tutorial se expondrá cómo crear un plugin que cumpla las siguientes características:</p>
+<ol class="arabic simple">
+<li>El plugin sólo se activará y funcionará si el usuario lo desea.</li>
+<li>Nabaztag hablará al recibir un evento.</li>
+<li>Dicho evento deberá poder ser configurado por el usuario.</li>
+<li>El evento podrá ser reestablecido.</li>
+<li>Habrá un texto por defecto que será dicho, el cual será &#8220;Hola Mundo&#8221;. Dicho texto podrá ser cambiado por el usuario, sin afectar a los demás usuarios del servidor.</li>
+<li>Las funcionalidades del plugin deberán poder ser desactivadas por el usuario para sí mismo, borrando datos de su presencia.</li>
+<li>El plugin se llamará &#8220;saythis&#8221;.</li>
+</ol>
+<div class="section" id="crear-un-plugin-nuevo">
+<h2>1. Crear un plugin nuevo<a class="headerlink" href="#crear-un-plugin-nuevo" title="Enlazar permanentemente con este título">¶</a></h2>
+<p>Lo primero de todo, crearemos un archivo en <em>pynabaztag/plugins/</em> llamado <em>saythis.py</em>, y pegaremos la siguiente plantilla que nos guiará en la creación de nuestro plugin.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="c"># -*- coding: utf-8 -*-</span>
+<span class="c"># from threading import Timer ## Tareas que se ejecutarán en X tiempo.</span>
+<span class="c"># from .. blocks import Packet, MessageBlock ## Comunicación S-&gt;C.</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">base</span>
+
+<span class="c"># Diccionario con configuraciones por defecto</span>
+<span class="n">DEFAULT_CFG</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="c"># &#39;rabbids&#39;: {}, ## configuraciones en cada conejo.</span>
+<span class="p">}</span>
+
+<span class="k">class</span> <span class="nc">Pluginname</span><span class="p">(</span><span class="n">base</span><span class="o">.</span><span class="n">Base</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">plugin_init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c"># Se ejecutará justo en el momento de importarse el plugin. Úsese</span>
+        <span class="c"># solo para aquellos casos en que este plugin sirva de biblioteca</span>
+        <span class="c"># para otros plugins.</span>
+        <span class="k">pass</span>
+    <span class="k">def</span> <span class="nf">post_init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c"># Se ejecutará tras haberse ejecutado todos los demás plugins. Si</span>
+        <span class="c"># su plugin va a usar otro plugin de biblioteca (por ejemplo, el</span>
+        <span class="c"># plugin events), ponga aquí aquellas cosas que le hagan uso. De</span>
+        <span class="c"># lo contrario puede provocarse una excepción, ya que si se pone</span>
+        <span class="c"># en plugin_init, el plugin events podría no haberse importado</span>
+        <span class="c"># todavía.</span>
+        <span class="k">pass</span>
+    <span class="k">def</span> <span class="nf">web_user_options</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hconn</span><span class="p">):</span>
+        <span class="c"># Página de configuración del plugin</span>
+        <span class="k">pass</span>
+    <span class="k">def</span> <span class="nf">enable_rabbid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hconn</span><span class="p">):</span>
+        <span class="c"># El Nabaztag ha sido activado a través de la página de plugins</span>
+        <span class="k">pass</span>
+    <span class="k">def</span> <span class="nf">disable_rabbid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hconn</span><span class="p">):</span>
+        <span class="c"># El Nabaztag fue desactivado en la lista de plugins.</span>
+        <span class="k">pass</span>
+</pre></div>
+</div>
+<p>La clase &#8220;Pluginname&#8221; será la que se instancie, y será donde trabajemos en nuestro plugin. El nombre de la clase deberá ser el mismo que el del plugin, pero con la primera letra mayúscula. En nuestro caso:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">Saythis</span><span class="p">(</span><span class="n">base</span><span class="o">.</span><span class="n">Base</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">plugin_init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c"># Se ejecutará justo en el momento de importarse el plugin. Úsese</span>
+        <span class="c"># solo para aquellos casos en que este plugin sirva de biblioteca</span>
+        <span class="c"># para otros plugins.</span>
+        <span class="k">pass</span>
+</pre></div>
+</div>
+</div>
+</div>
+
 
           </div>
         </div>
       </div>
       <div class="sphinxsidebar">
         <div class="sphinxsidebarwrapper">
-  <h3>This Page</h3>
+  <h3><a href="index.html">Contenidos</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Tutorial: Creación de un plugin</a><ul>
+<li><a class="reference internal" href="#crear-un-plugin-nuevo">1. Crear un plugin nuevo</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Tema anterior</h4>
+  <p class="topless"><a href="intro.html"
+                        title="Capítulo anterior">Introducción: Qué es PyNabaztag</a></p>
+  <h3>Esta página</h3>
   <ul class="this-page-menu">
     <li><a href="_sources/tutorial.txt"
-           rel="nofollow">Show Source</a></li>
+           rel="nofollow">Enseñar el código</a></li>
   </ul>
 <div id="searchbox" style="display: none">
-  <h3>Quick search</h3>
+  <h3>Búsqueda rápida</h3>
     <form class="search" action="search.html" method="get">
       <input type="text" name="q" size="18" />
-      <input type="submit" value="Go" />
+      <input type="submit" value="Ir a" />
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
     </form>
@@ -70,17 +148,20 @@
       <div class="clearer"></div>
     </div>
     <div class="related">
-      <h3>Navigation</h3>
+      <h3>Navegación</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
-          <a href="genindex.html" title="General Index"
-             >index</a></li>
+          <a href="genindex.html" title="Índice General"
+             >índice</a></li>
+        <li class="right" >
+          <a href="intro.html" title="Introducción: Qué es PyNabaztag"
+             >anterior</a> |</li>
         <li><a href="index.html">PyNabaztag v2.7 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
         &copy; Copyright 2011, Nekmo.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.7.
+      Creado con <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.7.
     </div>
   </body>
 </html>
