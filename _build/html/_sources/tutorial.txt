@@ -240,3 +240,166 @@ El resultado final sería el siguiente::
         if form.no_data(): return form
         # ... A partir de aquí, se poseen los valores devueltos por el usuario. ...
         self.cfg.write()
+
+Esto generará un formulario con 2 campos: Un campo de texto para introducir el texto, y un cuadro de selección múltiple para elegir los eventos.
+
+5. Comunicación Servidor -> Cliente
+-----------------------------------
+Recapitulemos lo que llevamos hasta el momento: Hemos creado un plugin llamado "saythis", el cual puede activar el usuario a través de la interfaz web, y parametrar un texto que dirá Nabazag al recibir un evento (o varios), lo cual también es parametrable a través de la página web. Ahora, nos queda que al recibir el susodicho evento, se ejecute algo que haga que Nabaztag hable. Dicha función la hemos llamado en el apartado anterior como "say_text". Crearemos un nuevo método en el plugin con dicho nombre::
+    
+    def say_text(self, rabbid, data):
+        """\
+        Hablar a través del Nabaztag facilitado.
+        """
+        pass
+
+El sistema de eventos ejecutará este método entregando 2 argumentos: un primero con un objeto Rabbid, el cual será como el ya conocido *"hconn.rabbid"*. Lo siguiente que nos queda por saber, es cómo haremos las comunicaciones entre nuestro servidor, y el Nabaztag en cuestión. Aquí es donde entran los denominados **Paquetes" y "Bloques**. Para la comunicación Servidor -> Cliente, se usan bloques de instrucciones, y el paquete es un conjunto de uno o más bloques que se enviarán al Nabaztag. Existen 2 tipos diferentes de bloques: aquellos que tendrán consecuencias a largo plazo en el Nabaztag (como el bloque Reboot, que reiniciará a Nabaztag, o los "bloques ambiente", que graban datos en la memoria de Nabaztag), y los "inmediatos" y sin consecuencias a largo plazo. Estos últimos serán los más utilizados, y controlarán cosas como la reproducción de sonidos, mover las orejas o los leds. En realidad, hay un único bloque que hace esto, llamado **MessageBlock**, pero que a su vez tiene en su interior una serie de "sub-bloques" con las instrucciones.
+
+Para usar el bloque MessageBlock y Packet, descomentaremos::
+    
+    from .. blocks import Packet, MessageBlock # Comunicación S->C.
+
+Aunque Nabaztag no permita de por sí la sintetización de voz, MessageBlock tiene un sub-bloque que creará un archivo de audio con una voz sintetizada con el texto que le digamos, y pondrá la orden de reproducir dicho archivo en el MessageBlock. Este *"sub-bloque"*, se creará en el MessageBlock con el método **say**::
+    
+    # Se instancia MessageBlock
+    msg = MessageBlock()
+    msg.say("Texto a decir")
+    # Si quisiéramos que se dijese otro texto justo después:
+    # msg.say("Segundo texto que se dirá a continuación.")
+
+MessageBlock tiene además una solución para reducir esto en una sola línea (para cuando queremos poner sólo una instrucción en el MessageBlock. Aplicado a lo que necesitamos, sería::
+    
+    # Texto a decir obtenido de las configuraciones
+    to_say = self.cfg['rabbids'][str(rabbid)]['to_say']
+    # MessageBlock sólo con la instrucción de decir el texto
+    msg = MessageBlock('say', to_say)
+
+Ahora, sólo nos queda añadir el bloque MessageBlock al Packet::
+
+    def say_text(self, rabbid, data):
+        """\
+        Hablar a través del Nabaztag facilitado.
+        """
+        # Texto a decir obtenido de las configuraciones
+        to_say = self.cfg['rabbids'][str(rabbid)]['to_say']
+        # Paquete con el conejo al que se enviará (rabbid) y el bloque
+        # MessageBlock que se enviará al conejo con el texto que se dirá
+        Packet(MessageBlock('say', to_say)).send(rabbid, self.main)
+    
+En 2 sencillas líneas, hemos hecho que nuestro Nabaztag hable. ¿Sencillo, no? Es necesario decir, que si queremos que el Packet tenga más de 1 Block, el primer argumento deberá ser una tupla o un listado con los bloques. Los bloques, serán reproducidos a continuación. Hay más bloques y opciones, pero esto es todo lo que necesitamos saber en este tutorial.
+
+6. Borrar datos al deshabilitar el plugin
+-----------------------------------------
+¡Genial! Ya tenemos nuestro plugin, y nuestro Nabaztag ya habla al recibir un evento. Pero no cantemos victoria tan rápido: aún tenemos que pensar en la deshabilitación de nuestro plugin. Aunque el plugin se desactive ahora mismo, Nabaztag seguirá hablando cuando reciba el evento, y no es lo que deseamos. Tenemos que:
+
+# Eliminar los eventos que activan la función
+# Borrar los datos de configuración del usuario.
+
+Para lo primero usaremos un método que nos trae el plugin Events::
+    
+    def disable_rabbid(self, hconn):
+        # El Nabaztag fue desactivado en la lista de plugins.
+        # Eliminar todos los eventos que apuntan a la función para el conejo
+        self.rm_recv_by_funct_event(hconn.rabbid, self.say_text)
+
+Y después borraremos todos los datos de configuración:
+    
+    del self.cfg['rabbids'][str(hconn.rabbid)]
+    
+El resultado final sería como el siguiente:
+
+    def disable_rabbid(self, hconn):
+        # El Nabaztag fue desactivado en la lista de plugins.
+        # Eliminar todos los eventos que apuntan a la función para el conejo
+        self.rm_recv_by_funct_event(hconn.rabbid, self.say_text)
+        # Se borran todas las configuraciones para el conejo
+        del self.cfg['rabbids'][str(hconn.rabbid)]
+        # Se escribe en la configuración los cambios en realizados
+        self.cfg.write()
+
+Ya tenemos terminado nuestro plugin, y así quedaría el resultado::
+
+    # -*- coding: utf-8 -*-
+    from threading import Timer # Tareas que se ejecutarán en X tiempo.
+    import gettext # Locales
+    from .. blocks import Packet, MessageBlock # Comunicación S->C.
+    from . import base
+
+    # Diccionario con configuraciones por defecto
+    DEFAULT_CFG = {
+        'rabbids': {}, # configuraciones en cada conejo.
+    }
+    
+    # Descomentar la siguiente línea para las locales
+    _ = gettext.gettext ## Traducir texto mediante _("Texto")
+    
+    class Pluginname(base.Base):
+        def plugin_init(self):
+            # Se ejecutará justo en el momento de importarse el plugin. Úsese
+            # solo para aquellos casos en que este plugin sirva de biblioteca
+            # para otros plugins.
+            pass
+        def post_init(self):
+            # Se ejecutará tras haberse ejecutado todos los demás plugins. Si
+            # su plugin va a usar otro plugin de biblioteca (por ejemplo, el
+            # plugin events), ponga aquí aquellas cosas que le hagan uso. De
+            # lo contrario puede provocarse una excepción, ya que si se pone
+            # en plugin_init, el plugin events podría no haberse importado
+            # todavía.
+            pass
+        def web_user_options(self, hconn):
+            # Página de configuración del plugin
+            # Diccionario con la configuración del conejo
+            rabbid_cfg = self.cfg['rabbids'][str(hconn.rabbid)]
+            # Se crea el objeto formulario. El segundo argumento será un
+            # diccionario sobre el que se guarden los valores devueltos por
+            # el usuario en los campos. El atributo title será el título que
+            # encabece el formulario.
+            form = base.Form(hconn, rabbid_cfg, title='Texto a decir')
+            # ... Se establecen los campos del formulario aquí ...
+            # Campo del formulario to_say. El primer argumento es la clave en el 
+            # diccionario rabbid_cfg. La segunda el texto de ayuda del campo.
+            form.text('to_say', 'Texto a decir')
+            # Campo del formulario para seleccionar los eventos. El primer
+            # argumento Es la función que se ejecutará al recibirse el evento.
+            form.events(self.say_text)
+            if form.no_data(): return form
+            # A partir de aquí, se poseen los valores devueltos por el usuario.
+            self.cfg.write()
+        def say_text(self, rabbid, data):
+            """\
+            Hablar a través del Nabaztag facilitado.
+            """
+            # Texto a decir obtenido de las configuraciones
+            to_say = self.cfg['rabbids'][str(rabbid)]['to_say']
+            # Paquete con el conejo al que se enviará (rabbid) y el bloque
+            # MessageBlock que se enviará al conejo con el texto que se dirá
+            Packet(MessageBlock('say', to_say)).send(rabbid, self.main)
+        def enable_rabbid(self, hconn):
+            """ \
+            Crear la configuración inicial para el Nabaztag al activar el
+            plugin.
+            """
+            # Creamos un diccionario como valor a la clave del conejo,
+            # que almacene las configuraciones para el conejo
+            self.cfg[str(hconn.rabbid)] = {}
+            # Texto a decir por defecto en el nombre de clave "to_say".
+            # Será traducido al idioma del usuario con el _(...)
+            self.cfg[str(hconn.rabbid)]['to_say'] = _('Hola Mundo')
+            # Lo siguiente guardará la configuración en el archivo
+            # de configuración, para que no se pierda. Sería algo
+            # así como un commit
+            self.cfg.write()
+        def disable_rabbid(self, hconn):
+            # El Nabaztag fue desactivado en la lista de plugins.
+            # El Nabaztag fue desactivado en la lista de plugins.
+            # Eliminar todos los eventos que apuntan a la función para el conejo
+            self.rm_recv_by_funct_event(hconn.rabbid, self.say_text)
+            # Se borran todas las configuraciones para el conejo
+            del self.cfg['rabbids'][str(hconn.rabbid)]
+            # Se escribe en la configuración los cambios en realizados
+            self.cfg.write()
+
+7. ¿Qué queda ahora?
+-----------------------------------------
+Esta guía sólo ha servido como un ligero aperitivo a lo que viene de verdad, pero esperamos que haya servido para que te hagas una ligera idea del funcionamiento del sistema de plugins de PyNabaztag. Aún queda mucho que aprender, porque aquí no se acaba la cosa: PyNabaztag te ofrece más campos de formulario para que eches a volar tu imaginación, te permite hacer cosas como que un campo de texto exija que el valor sea un número, o que tenga una longitud máxima o mínima. Puedes rediseñar la página del formulario con Javascript y CSS, crear nuevas páginas para la web, establecer eventos crond para que una acción se ejecute en la fecha que tú digas, crear y usar coreografías para que Nabaztag baile, entre otras muchas otras cosas... ¡Te esperamos!
